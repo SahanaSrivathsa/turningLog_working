@@ -13,15 +13,15 @@ from PIL import Image, ImageDraw, ImageFont
 path = os.getcwd()
 screenshot_dir = "C:\\Users\\sahanasrivathsa\\Videos\\Captures"
 images_dir=path + "\\Images\\"
-    #ephysnotes_dir=
+#ephysnotes_dir=
 HC_img_path = images_dir+"vHC.png"
 ACC_angle_path=images_dir+"ACC_angled.png"
 ACC_straight_path=images_dir+"ACC.png"
 
-#Defining the angle
-theta=math.radians(12)
-sin_theta=math.sin(theta)
-cos_theta=math.cos(theta)
+# #Defining the angle
+# theta=math.radians(12)
+# sin_theta=math.sin(theta)
+# cos_theta=math.cos(theta)
 
 #Initializing Lists/Arrays for rat params
 turns= [0] * 18
@@ -36,9 +36,12 @@ turnsFull=[]
 turnsEighths=[]
 newPos=[]
 cellUnits=[]
-lfpNotes=[]
+lfpTheta=[]
+lfpSWR=[]
+noise=[]
+ref=[]
 Notes=[]
-
+   
 #Font and colors for tetrodes plotting onto paxinos images
 font_path = "C:\\Windows\\Fonts\\ARLRDBD.TTF"
 color_array= [(85,26,139),(39,64,139), (96,123,139), (46,139,87), (48,128,20),(238,154,0), (255,128,0),(205,51,51), (139,37,0),  (139,131,134) ]
@@ -94,19 +97,19 @@ def save_turn_data():
     with open(currentFile,'w') as current:
         with open(logFile,'w') as log:
             current.write('TT,Direction,Total Turns,Depth,Updated\n')
-            log.write('TT,Old Depth,Old Direction,Turns,New Direction,Total Turns,New Depth,OrgNotes,NewNotes\n')
+            log.write('TT,Old Depth,Old Direction,Turns,New Direction,Total Turns,New Depth,Units,Theta,SWR,Noise,Reference_AD,Notes\n')
             for tet in range(0,18):
                 #Get all the current entries
                 turnsFull[tet]=ttTurns[tet].get()
                 turnsEighths[tet]=ttEighths[tet].get()
                 newPos[tet]=ttPos[tet].get()
                 cellUnits[tet] = ttUnits[tet].get()
-                lfpNotes[tet]=ttLfp[tet].get()
+                lfpTheta[tet]=ttTheta[tet].get()
+                lfpSWR[tet]=ttSWR[tet].get()
+                noise[tet]=ttNoise[tet].get()
+                ref[tet]=ttRef[tet].get()
                 Notes[tet]=ttNotes[tet].get()
    
-      
-
-
                 if turnsEighths[tet] == '':
                     turnsEighths[tet] = 0
                 if turnsFull[tet] == '':
@@ -119,9 +122,9 @@ def save_turn_data():
                     newDepth= 0
                 else:
                     newDepth = turnDepth(newTotal)
-                current.write('{0},{1},{2},{3},{4}\n'.format(tetrodes[tet],newPos[tet],newTotal,newDepth,date))
-                log.write('{0},{1},{2},{3},{4},{5},{6},{7}\n'.format(tetrodes[tet],org_depths[tet],positions[tet],turns[tet],
-                                                                 newPos[tet],newTotal,newDepth,cellUnits[tet],lfpNotes[tet],Notes[tet]))
+                current.write('{0},{1},{2},{3},{4},{5}\n'.format(tetrodes[tet],newPos[tet],newTotal,newDepth,date))
+                log.write('{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}\n'.format(tetrodes[tet],org_depths[tet],positions[tet],turns[tet],
+                                                                 newPos[tet],newTotal,newDepth,cellUnits[tet],lfpTheta[tet],lfpSWR[tet],noise[tet],ref[tet],Notes[tet]))
     master.quit()
 
 ################# Functions restricting/validating the entry types  #################
@@ -144,6 +147,14 @@ def commas_present(input):
         return False
     else:
         return True
+def yes_no(input):
+    """
+    Limits the Yes no inputs to Y/N 
+    """
+    if input in ('Y','N'): 
+        return True
+    else:
+        return False
 
 def change_color(c):
     """
@@ -198,15 +209,15 @@ def checkTTdir():
     return directions_array
 
 
-def checkACCangle():
-    """
-    Checks if the bundle is angled on not (based on toggle button ang_btn)
-    """
-    if ang_btn.cget('text')== 'Angled':
-        angle=True
-    else:
-        angle=False
-    return angle
+# def checkACCangle():
+#     """
+#     Checks if the bundle is angled on not (based on toggle button ang_btn)
+#     """
+#     if ang_btn.cget('text')== 'Angled':
+#         angle=True
+#     else:
+#         angle=False
+#     return angle
     
 def update_tt_depth(tt_id):
     """
@@ -253,10 +264,10 @@ def update_tt_depth(tt_id):
     if  positions[idx] == "O":
         updated_depths[idx]=0
 
-    #Updates depth for angled bundle along D-V axis
-    angle=checkACCangle()
-    if angle:
-        update_tt_depth[idx]=cos_theta*update_tt_depth[idx]
+    # #Updates depth for angled bundle along D-V axis
+    # angle=checkACCangle()
+    # if angle:
+    #     update_tt_depth[idx]=cos_theta*update_tt_depth[idx]
         
     Label(master, text=temp_pos[idx],font=('Helvetica',14),width = 5,fg=col).grid(row=idx+1,column=3)
     Label(master, text=updated_depths[idx],font=('Helvetica',14),width = 8,fg=col).grid(row=idx+1,column=1)
@@ -281,7 +292,7 @@ def fill_dir():
         if positions[idx] == "O":
                     eval('%sPos.insert(0,"O")'%(i))
 
-def fill_info():
+def fill_turns():
     """
     Based on tetrode turns all unfilled turns are filled up. This is necessary to run before saving for the CSV file to read correctly the next time.
     """
@@ -302,6 +313,7 @@ def fill_info():
             eval('%sTurns.insert(0, calc_turns(positions[idx],%sPos.get(),directions_array))'%(i,i))
         if len(eval('%sTurnsFull.get()'%(i)))==0:
             eval('%sTurnsFull.insert(0,0)'%(i))
+
 
 ################# Functions for image processing and saving  #################
 
@@ -348,54 +360,54 @@ def view_tetrodes_ACC():
     Opens Paxinos image of ACC and plots the tetrode depth and saves it image for every session
     '''
     #img_path=images_dir+"ACC.png"
-    angle=checkACCangle
-    if angle:
-        ACC_img_path = ACC_angle_path
-    else:
-        ACC_img_path = ACC_straight_path
+    # angle=checkACCangle
+    # if angle:
+    #     ACC_img_path = ACC_angle_path
+    # else:
+    ACC_img_path = ACC_straight_path
 
     ACC =Image.open(ACC_img_path)    
     draw = ImageDraw.Draw(ACC, mode="RGBA")
     numlist=[0,1,2,3,4,5,6,7,17]
     
-    if not angle:
-            for i in numlist:
-                if updated_depths[i] != None:
-                    dep=round((updated_depths[i]/1000),2)
-                    tt_depth = np.floor((updated_depths[i]/1000)*ACC_increment)
-                else:
-                    dep=round((depths[i]/1000),2)
-                    tt_depth = np.floor((depths[i]/1000)*ACC_increment)
-                if tt_depth == 0:
-                    dep=0
-                if i!=17:
-                    draw.line((ACC_xcoord+(i*10), ACC_ycoord ,ACC_xcoord+(i*10), ACC_ycoord+tt_depth), width = 4, fill = color_array[i])
-                    font = ImageFont.truetype(font_path,size=25)
-                    draw.text((624, 280+((i)*25)),"TT%d: %1.2f"%(i+1,dep),fill =color_array[i],font=font)
-                else:
-                    draw.line((ACC_xcoord+((i-8)*10), ACC_ycoord ,ACC_xcoord+((i-8)*10), ACC_ycoord+tt_depth), width = 4, fill = color_array[i-8])
-                    font = ImageFont.truetype(font_path,size=25)
-                    draw.text((624, 280+((i-8)*25)),"RR: %1.2f"%(dep),fill =color_array[i-8],font=font)
-    else:
-            for i in numlist:
-                if updated_depths[i] != None:
-                    dep=round((updated_depths[i]/1000),2)
-                    tt_depth = np.floor((updated_depths[i]/1000)*ACC_increment*cos_theta)
-                    tt_depth_x =np.floor((updated_depths[i]/1000)*ACC_increment*sin_theta)
-                else:
-                    dep=round((depths[i]/1000),2)
-                    tt_depth = np.floor((depths[i]/1000)*ACC_increment*cos_theta)
-                    tt_depth_x =np.floor((depths[i]/1000)*ACC_increment*sin_theta)
-                if tt_depth == 0:
-                    dep=0
-                if i!=17:
-                    draw.line((ACC_ang_xcoord+(i*10), ACC_ang_ycoord ,ACC_ang_xcoord+(i*10)-tt_depth_x, ACC_ang_ycoord +tt_depth), width = 4, fill = color_array[i])
-                    font = ImageFont.truetype(font_path,size=25)
-                    draw.text((624, 280+((i)*25)),"TT%d: %1.2f"%(i+1,dep),fill =color_array[i],font=font)
-                else:
-                    draw.line((ACC_ang_xcoord+((i-8)*10), ACC_ang_ycoord  ,ACC_ang_xcoord+((i-8)*10)-tt_depth_x, ACC_ang_ycoord +tt_depth*cos_theta), width = 4, fill = color_array[i-8])
-                    font = ImageFont.truetype(font_path,size=25)
-                    draw.text((624, 280+((i-8)*25)),"RR: %1.2f"%(dep),fill =color_array[i-8],font=font)
+    
+    for i in numlist:
+        if updated_depths[i] != None:
+            dep=round((updated_depths[i]/1000),2)
+            tt_depth = np.floor((updated_depths[i]/1000)*ACC_increment)
+        else:
+            dep=round((depths[i]/1000),2)
+            tt_depth = np.floor((depths[i]/1000)*ACC_increment)
+        if tt_depth == 0:
+            dep=0
+        if i!=17:
+            draw.line((ACC_xcoord+(i*10), ACC_ycoord ,ACC_xcoord+(i*10), ACC_ycoord+tt_depth), width = 4, fill = color_array[i])
+            font = ImageFont.truetype(font_path,size=25)
+            draw.text((624, 280+((i)*25)),"TT%d: %1.2f"%(i+1,dep),fill =color_array[i],font=font)
+        else:
+            draw.line((ACC_xcoord+((i-8)*10), ACC_ycoord ,ACC_xcoord+((i-8)*10), ACC_ycoord+tt_depth), width = 4, fill = color_array[i-8])
+            font = ImageFont.truetype(font_path,size=25)
+            draw.text((624, 280+((i-8)*25)),"RR: %1.2f"%(dep),fill =color_array[i-8],font=font)
+    # else:
+    #         for i in numlist:
+    #             if updated_depths[i] != None:
+    #                 dep=round((updated_depths[i]/1000),2)
+    #                 tt_depth = np.floor((updated_depths[i]/1000)*ACC_increment*cos_theta)
+    #                 tt_depth_x =np.floor((updated_depths[i]/1000)*ACC_increment*sin_theta)
+    #             else:
+    #                 dep=round((depths[i]/1000),2)
+    #                 tt_depth = np.floor((depths[i]/1000)*ACC_increment*cos_theta)
+    #                 tt_depth_x =np.floor((depths[i]/1000)*ACC_increment*sin_theta)
+    #             if tt_depth == 0:
+    #                 dep=0
+    #             if i!=17:
+    #                 draw.line((ACC_ang_xcoord+(i*10), ACC_ang_ycoord ,ACC_ang_xcoord+(i*10)-tt_depth_x, ACC_ang_ycoord +tt_depth), width = 4, fill = color_array[i])
+    #                 font = ImageFont.truetype(font_path,size=25)
+    #                 draw.text((624, 280+((i)*25)),"TT%d: %1.2f"%(i+1,dep),fill =color_array[i],font=font)
+    #             else:
+    #                 draw.line((ACC_ang_xcoord+((i-8)*10), ACC_ang_ycoord  ,ACC_ang_xcoord+((i-8)*10)-tt_depth_x, ACC_ang_ycoord +tt_depth*cos_theta), width = 4, fill = color_array[i-8])
+    #                 font = ImageFont.truetype(font_path,size=25)
+    #                 draw.text((624, 280+((i-8)*25)),"RR: %1.2f"%(dep),fill =color_array[i-8],font=font)
 
 
     ACC.show()
@@ -412,13 +424,14 @@ org_depths=depths
 #Setting up  the form
 master = Tk()
 master.title("Turning Log "+date)
-master.geometry('900x900')
+master.geometry('1200x800')
 var = BooleanVar()
 
 #Restricting allowed directions
 valid_directions = master.register(allowed_directions)
 valid_turns = master.register(allowed_turns)
 valid_comma=master.register(commas_present)
+valid_yes=master.register(yes_no)
 
 
 ###############################################################################################################################################################################
@@ -451,8 +464,8 @@ Label(master, text='Full \n Turns',font=('Helvetica',15, "bold"),anchor="center"
 ttTurns=[]
 for i in tt_list:
     idx=tt_list.index(i)
-    unit= Entry(master, width=3,validate = 'key',validatecommand = (valid_turns,'%P'))
-    unit.grid(row=idx+1, column=4)
+    eval('%sTurnsFull'%(i)) = Entry(master, width=3,validate = 'key',validatecommand = (valid_turns,'%P'))
+    eval('%sTurnsFull'%(i).grid(row=idx+1, column=4))
     ttTurns.append(unit)
 
 ################## COLUMN 5 No of Eighths ###############################
@@ -492,43 +505,51 @@ for i in tt_list:
     unit.grid(row=idx+1, column=8)
     ttUnits.append(unit)
 
-################# COLUMN 9 Lfp Notes ###############################
-Label(master, text='LFP',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=9)
-ttLfp=[]
+################# COLUMN 9 Theta ###############################
+Label(master, text='Theta',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=9)
+ttTheta=[]
 for i in tt_list:
     idx=tt_list.index(i)
-    unit= Entry(master, width=8,validate = 'key',validatecommand = (valid_comma,'%P'))
+    unit= Entry(master, width=3,validate = 'key',validatecommand = (valid_yes,'%P'))
     unit.grid(row=idx+1, column=9)
-    ttLfp.append(unit)
+    ttTheta.append(unit)
 
-################# COLUMN 10 Notes ###############################
-Label(master, text='Notes',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=10)
+################# COLUMN 10 SWR ###############################
+Label(master, text='SWR',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=10)
+ttSWR=[]
+for i in tt_list:
+    idx=tt_list.index(i)
+    unit= Entry(master, width=3,validate = 'key',validatecommand = (valid_yes,'%P'))
+    unit.grid(row=idx+1, column=10)
+    ttTheta.append(unit)
+
+################# COLUMN 11 Noise ###############################
+Label(master, text='Noise',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=11)
+ttNoise=[]
+for i in tt_list:
+    idx=tt_list.index(i)
+    unit= Entry(master, width=3,validate = 'key',validatecommand = (valid_yes,'%P'))
+    unit.grid(row=idx+1, column=11)
+    ttTheta.append(unit)
+
+################# COLUMN 12 Reference ###############################
+Label(master, text='Ref',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=12)
+ttRef=[]
+for i in tt_list:
+    idx=tt_list.index(i)
+    unit= Entry(master, width=3,validate = 'key',validatecommand = (valid_comma,'%P'))
+    unit.grid(row=idx+1, column=12)
+    ttTheta.append(unit)
+
+################# COLUMN 13 Notes ###############################
+Label(master, text='Notes',font=('Helvetica',15, "bold"),anchor="center").grid(row=0, column=13)
 ttNotes=[]
 for i in tt_list:
     idx=tt_list.index(i)
     unit= Entry(master, width=15,validate = 'key',validatecommand = (valid_comma,'%P'))
-    unit.grid(row=idx+1, column=10)
+    unit.grid(row=idx+1, column=13)
     ttNotes.append(unit)
 
-#Noisy Channels
-Label(master, text='Noisy TTs',font=('Helvetica',15, "bold"),anchor="center").grid(row=9, column=11)
-NoisyChannel = Entry(master, width=10,validate = 'key',validatecommand = (valid_comma,'%P'))
-NoisyChannel.grid(row=9, column =12)
-
-#References
-Label(master, text='References',font=('Helvetica',15, "bold"),anchor="center").grid(row=2, column=11)
-Label(master, text='ACC',font=('Helvetica',14),anchor="center").grid(row=3, column=11)
-ACC_Ref = Entry(master, width=3,validate = 'key',validatecommand = (valid_comma,'%P'))
-ACC_Ref.grid(row=4, column =12)
-Label(master, text='AD:',font=('Helvetica',14),anchor="center").grid(row=5, column=11)
-ACC_RefAD = Entry(master, width=3,validate = 'key',validatecommand = (valid_comma,'%P'))
-ACC_RefAD.grid(row=5, column =12)
-Label(master, text='HC',font=('Helvetica',14),anchor="center").grid(row=6, column=11)
-HC_Ref=Entry(master, width=3,validate = 'key',validatecommand = (valid_comma,'%P'))
-HC_Ref.grid(row=6, column =12)
-Label(master, text='AD:',font=('Helvetica',14),anchor="center").grid(row=8, column=11)
-HC_RefAD=Entry(master, width=3,validate = 'key',validatecommand = (valid_comma,'%P'))
-HC_RefAD.grid(row=8, column =12)
 
 ############################################################### BUTTONS ########################################################################################
 
@@ -557,29 +578,32 @@ t_btn.grid(row=22, column=2, pady=10, padx =8 )
 org_color = t_btn.cget("background")
 bg_master=master.cget('background')
 
-#BUNDLE CONFIG -ANGLED STRAIGHT BUTTON
-def config(tog2=[0]):
-    tog2[0] = not tog2[0]
-    if tog2[0]:
-        ang_btn.config(text='Angled')
-        ang_btn.config(relief="raised")
-        ang_btn.config(bg='green')
+#########################################################
+#Angled button Code not being used anymore
+
+# #BUNDLE CONFIG -ANGLED STRAIGHT BUTTON
+# def config(tog2=[0]):
+#     tog2[0] = not tog2[0]
+#     if tog2[0]:
+#         ang_btn.config(text='Angled')
+#         ang_btn.config(relief="raised")
+#         ang_btn.config(bg='green')
         
 
-    else:
-        ang_btn.config(text='Straight')
-        ang_btn.config(relief="sunken")
-        ang_btn.config(bg=org_color)
+#     else:
+#         ang_btn.config(text='Straight')
+#         ang_btn.config(relief="sunken")
+#         ang_btn.config(bg=org_color)
 
-#Initializes the angled bundle button 
-ang_btn = Button(master,text="Straight", width=12, command=config,relief="raised")
-ang_btn.grid(row=22, column=1, pady=10, padx =8 )
+# #Initializes the angled bundle button 
+# ang_btn = Button(master,text="Straight", width=12, command=config,relief="raised")
+# ang_btn.grid(row=22, column=1, pady=10, padx =8 )
 
 
 
  ############################### OTHER BUTTONS ###############################
 Button (master, text='Submit', command=save_turn_data,anchor="center").grid(row=22, column=9, pady=8)
-Button (master, text='Fill \n Turns', command=fill_info,anchor="center").grid(row=22, column=4, pady=8)
+Button (master, text='Fill \n Turns', command=fill_turns,anchor="center").grid(row=22, column=4, pady=8)
 Button(master,text='Fill \n Directions', command=fill_dir,anchor="center").grid(row=22,column=5,pady=8)
 Button(master,text='Attach \n Image', command=attach_img,anchor="center").grid(row=22,column=6,pady=8)
 Button(master,text='View Tetrodes \n Hippocampus', command=view_tetrodes_HC,anchor="center").grid(row=22,column=7,pady=8)
